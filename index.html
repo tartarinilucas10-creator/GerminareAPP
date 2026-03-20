@@ -3,77 +3,116 @@
 <head>
   <title>Germinare</title>
 
-  <!-- Firebase versão COMPAT (importante!) -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
+  <!-- Estilo bonito -->
   <style>
     body {
+      margin: 0;
       font-family: Arial;
-      background: #f5f5f5;
-      padding: 20px;
+      background: linear-gradient(135deg, #4CAF50, #2E7D32);
+      color: white;
+    }
+
+    header {
+      padding: 15px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      padding: 15px;
     }
 
     .box {
       background: white;
+      color: black;
+      border-radius: 12px;
       padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
 
     button {
-      padding: 5px 10px;
-      margin-top: 5px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
       cursor: pointer;
+      margin-top: 5px;
+    }
+
+    button:hover {
+      background: #388E3C;
     }
 
     input {
-      padding: 5px;
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    #chat {
+      max-height: 150px;
+      overflow-y: auto;
     }
   </style>
 </head>
 
 <body>
 
-<h1>🌱 Germinare</h1>
+<header>🌱 Germinare</header>
 
-<button onclick="login()">Login com Google</button>
-
-<div class="box">
-  <h2>💬 Chat</h2>
-  <input id="msg">
-  <button onclick="send()">Enviar</button>
-  <div id="chat"></div>
+<div style="text-align:center; margin-top:10px;">
+  <button onclick="login()">Login com Google</button>
 </div>
 
-<div class="box">
-  <h2>👥 Amigos</h2>
-  <input id="friend">
-  <button onclick="addFriend()">Adicionar</button>
-  <div id="requests"></div>
-</div>
+<div class="container">
 
-<div class="box">
-  <h2>💰 Moedas: <span id="coins">0</span></h2>
-</div>
+  <div class="box">
+    <h3>💬 Chat</h3>
+    <input id="msg" placeholder="Digite...">
+    <button onclick="send()">Enviar</button>
+    <div id="chat"></div>
+  </div>
 
-<div class="box">
-  <h2>🛒 Loja</h2>
-  <button onclick="buy(50)">Óculos - 50</button>
-  <button onclick="buy(100)">Roupa - 100</button>
-</div>
+  <div class="box">
+    <h3>👥 Amigos</h3>
+    <input id="friend" placeholder="Nome">
+    <button onclick="addFriend()">Adicionar</button>
+    <div id="requests"></div>
+  </div>
 
-<div class="box">
-  <h2>🏆 Ranking</h2>
-  <div id="ranking"></div>
+  <div class="box">
+    <h3>💰 Moedas: <span id="coins">0</span></h3>
+  </div>
+
+  <div class="box">
+    <h3>🛒 Loja</h3>
+    <button onclick="buy(50)">Óculos - 50</button>
+    <button onclick="buy(100)">Roupa - 100</button>
+  </div>
+
+  <div class="box">
+    <h3>🏆 Ranking</h3>
+    <div id="ranking"></div>
+  </div>
+
 </div>
 
 <script>
 const firebaseConfig = {
-  apiKey: "SUA_KEY",
-  authDomain: "SEU_DOMINIO",
-  projectId: "SEU_ID"
+  apiKey: "AIzaSyDotLhxhk3pz9o-Ux6RTmUnjqVYHLz0arc",
+  authDomain: "germinaapp-d9eb4.firebaseapp.com",
+  projectId: "germinaapp-d9eb4"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -81,7 +120,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let user;
+let user = null;
 
 // LOGIN
 function login() {
@@ -94,12 +133,14 @@ function login() {
       coins: 0
     }, { merge: true });
 
-    loadUser();
-  });
+    alert("Logado como " + user.displayName);
+  }).catch(e => alert("Erro login"));
 }
 
 // CHAT
 function send() {
+  if (!user) return alert("Faça login primeiro!");
+
   const msg = document.getElementById("msg").value;
 
   db.collection("messages").add({
@@ -112,17 +153,20 @@ function send() {
   });
 }
 
+// ATUALIZA CHAT
 db.collection("messages").onSnapshot(snap => {
   let html = "";
   snap.forEach(doc => {
     const m = doc.data();
-    html += "<p><b>"+m.user+":</b> "+m.text+"</p>";
+    html += `<p><b>${m.user}:</b> ${m.text}</p>`;
   });
   document.getElementById("chat").innerHTML = html;
 });
 
 // AMIGOS
 function addFriend() {
+  if (!user) return alert("Faça login!");
+
   const name = document.getElementById("friend").value;
 
   db.collection("requests").add({
@@ -131,6 +175,7 @@ function addFriend() {
   });
 }
 
+// REQUESTS
 db.collection("requests").onSnapshot(snap => {
   let html = "";
   snap.forEach(doc => {
@@ -142,6 +187,7 @@ db.collection("requests").onSnapshot(snap => {
   document.getElementById("requests").innerHTML = html;
 });
 
+// ACEITAR
 function accept(id) {
   db.collection("users").doc(user.uid).update({
     coins: firebase.firestore.FieldValue.increment(20)
@@ -151,14 +197,20 @@ function accept(id) {
 }
 
 // MOEDAS
-function loadUser() {
-  db.collection("users").doc(user.uid).onSnapshot(doc => {
-    document.getElementById("coins").innerText = doc.data().coins;
+setInterval(() => {
+  if (!user) return;
+
+  db.collection("users").doc(user.uid).get().then(doc => {
+    if (doc.exists) {
+      document.getElementById("coins").innerText = doc.data().coins;
+    }
   });
-}
+}, 2000);
 
 // LOJA
 function buy(price) {
+  if (!user) return;
+
   db.collection("users").doc(user.uid).update({
     coins: firebase.firestore.FieldValue.increment(-price)
   });
