@@ -2,43 +2,82 @@
 <html>
 <head>
   <title>Germinare</title>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+
+  <!-- Firebase versão COMPAT (importante!) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .box {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+    }
+
+    button {
+      padding: 5px 10px;
+      margin-top: 5px;
+      cursor: pointer;
+    }
+
+    input {
+      padding: 5px;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Germinare 🌱</h1>
 
-  <button onclick="login()">Login com Google</button>
+<h1>🌱 Germinare</h1>
 
+<button onclick="login()">Login com Google</button>
+
+<div class="box">
   <h2>💬 Chat</h2>
-  <input id="msg" placeholder="Mensagem"/>
+  <input id="msg">
   <button onclick="send()">Enviar</button>
   <div id="chat"></div>
+</div>
 
+<div class="box">
   <h2>👥 Amigos</h2>
-  <input id="friend" placeholder="Nome"/>
-  <button onclick="addFriend()">Enviar pedido</button>
+  <input id="friend">
+  <button onclick="addFriend()">Adicionar</button>
   <div id="requests"></div>
+</div>
 
+<div class="box">
   <h2>💰 Moedas: <span id="coins">0</span></h2>
+</div>
 
+<div class="box">
   <h2>🛒 Loja</h2>
   <button onclick="buy(50)">Óculos - 50</button>
   <button onclick="buy(100)">Roupa - 100</button>
+</div>
 
+<div class="box">
   <h2>🏆 Ranking</h2>
   <div id="ranking"></div>
+</div>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyDotLhxhk3pz9o-Ux6RTmUnjqVYHLz0arc",
-  authDomain: "germinaapp-d9eb4.firebaseapp.com",
-  projectId: "germinaapp-d9eb4"
+  apiKey: "SUA_KEY",
+  authDomain: "SEU_DOMINIO",
+  projectId: "SEU_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -55,7 +94,7 @@ function login() {
       coins: 0
     }, { merge: true });
 
-    load();
+    loadUser();
   });
 }
 
@@ -96,14 +135,14 @@ db.collection("requests").onSnapshot(snap => {
   let html = "";
   snap.forEach(doc => {
     const r = doc.data();
-    if (r.to === user.displayName) {
-      html += `<p>${r.from} <button onclick="accept('${doc.id}','${r.from}')">Aceitar</button></p>`;
+    if (user && r.to === user.displayName) {
+      html += `<p>${r.from} <button onclick="accept('${doc.id}')">Aceitar</button></p>`;
     }
   });
   document.getElementById("requests").innerHTML = html;
 });
 
-function accept(id, name) {
+function accept(id) {
   db.collection("users").doc(user.uid).update({
     coins: firebase.firestore.FieldValue.increment(20)
   });
@@ -112,7 +151,7 @@ function accept(id, name) {
 }
 
 // MOEDAS
-function load() {
+function loadUser() {
   db.collection("users").doc(user.uid).onSnapshot(doc => {
     document.getElementById("coins").innerText = doc.data().coins;
   });
