@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Germinare</title>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+</head>
+
+<body>
+  <h1>Germinare 🌱</h1>
+
+  <button onclick="login()">Login com Google</button>
+
+  <h2>💬 Chat</h2>
+  <input id="msg" placeholder="Mensagem"/>
+  <button onclick="send()">Enviar</button>
+  <div id="chat"></div>
+
+  <h2>👥 Amigos</h2>
+  <input id="friend" placeholder="Nome"/>
+  <button onclick="addFriend()">Enviar pedido</button>
+  <div id="requests"></div>
+
+  <h2>💰 Moedas: <span id="coins">0</span></h2>
+
+  <h2>🛒 Loja</h2>
+  <button onclick="buy(50)">Óculos - 50</button>
+  <button onclick="buy(100)">Roupa - 100</button>
+
+  <h2>🏆 Ranking</h2>
+  <div id="ranking"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "SUA_KEY",
+  authDomain: "SEU_DOMINIO",
+  projectId: "SEU_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let user;
+
+// LOGIN
+function login() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(res => {
+    user = res.user;
+
+    db.collection("users").doc(user.uid).set({
+      name: user.displayName,
+      coins: 0
+    }, { merge: true });
+
+    load();
+  });
+}
+
+// CHAT
+function send() {
+  const msg = document.getElementById("msg").value;
+
+  db.collection("messages").add({
+    user: user.displayName,
+    text: msg
+  });
+
+  db.collection("users").doc(user.uid).update({
+    coins: firebase.firestore.FieldValue.increment(2)
+  });
+}
+
+db.collection("messages").onSnapshot(snap => {
+  let html = "";
+  snap.forEach(doc => {
+    const m = doc.data();
+    html += "<p><b>"+m.user+":</b> "+m.text+"</p>";
+  });
+  document.getElementById("chat").innerHTML = html;
+});
+
+// AMIGOS
+function addFriend() {
+  const name = document.getElementById("friend").value;
+
+  db.collection("requests").add({
+    from: user.displayName,
+    to: name
+  });
+}
+
+db.collection("requests").onSnapshot(snap => {
+  let html = "";
+  snap.forEach(doc => {
+    const r = doc.data();
+    if (r.to === user.displayName) {
+      html += `<p>${r.from} <button onclick="accept('${doc.id}','${r.from}')">Aceitar</button></p>`;
+    }
+  });
+  document.getElementById("requests").innerHTML = html;
+});
+
+function accept(id, name) {
+  db.collection("users").doc(user.uid).update({
+    coins: firebase.firestore.FieldValue.increment(20)
+  });
+
+  db.collection("requests").doc(id).delete();
+}
+
+// MOEDAS
+function load() {
+  db.collection("users").doc(user.uid).onSnapshot(doc => {
+    document.getElementById("coins").innerText = doc.data().coins;
+  });
+}
+
+// LOJA
+function buy(price) {
+  db.collection("users").doc(user.uid).update({
+    coins: firebase.firestore.FieldValue.increment(-price)
+  });
+}
+
+// RANKING
+db.collection("users").orderBy("coins","desc").onSnapshot(snap => {
+  let html = "";
+  let i = 1;
+  snap.forEach(doc => {
+    const u = doc.data();
+    html += `<p>#${i++} ${u.name} - ${u.coins}</p>`;
+  });
+  document.getElementById("ranking").innerHTML = html;
+});
+</script>
+
+</body>
+</html>
